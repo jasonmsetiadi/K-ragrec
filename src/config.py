@@ -41,7 +41,7 @@ def parse_args_llama():
     parser.add_argument("--gnn_dropout", type=float, default=0.0)
 
     #retrieve
-    parser.add_argument("--adaptive_ratio", type=int, default=5)
+    parser.add_argument("--adaptive_ratio", type=int, default=5) #The integers from 1 to 10 correspond to 0.1 to 1.
     parser.add_argument("--sub_graph_numbers", type=int, default=3)
     parser.add_argument("--reranking_numbers", type=int, default=5)
     args = parser.parse_args()
