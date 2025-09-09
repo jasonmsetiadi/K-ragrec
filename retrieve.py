@@ -4,7 +4,7 @@ from torch_geometric.data.data import Data
 import pandas as pd
 import networkx as nx
 
-from lm_modeling import load_model, load_text2embedding
+from src.utils.lm_modeling import load_model, load_text2embedding
 import time
 import os
 from pcst_fast import pcst_fast
