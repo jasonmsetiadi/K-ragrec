@@ -169,11 +169,11 @@ class GraphRetrieval:
         return text2embedding
 
     def load_graph(self):
-        G = torch.load(f'{self.path}/graphs/0.pt')
+        G = torch.load(f'{self.path}/graphs/0.pt', weights_only=False)
         return G
     
     def load_second_layer_graph(self):
-        G_2 = torch.load(f'{self.path}/graphs/layer2_embeddings_W.pt')
+        G_2 = torch.load(f'{self.path}/graphs/layer2_embeddings_W.pt', weights_only=False)
         return G_2
     
     def load_graph_data(self):

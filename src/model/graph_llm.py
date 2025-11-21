@@ -38,8 +38,8 @@ class GraphLLM(torch.nn.Module):
 
         print('Loading LLAMA')
         kwargs = {
-            "max_memory": {0: '48GiB', 1: '48GiB'},
-            "device_map": "auto",
+            # "max_memory": {0: '48GiB', 1: '48GiB'},
+            # "device_map": "mps",
             "revision": "main",
         }
 
@@ -49,11 +49,15 @@ class GraphLLM(torch.nn.Module):
 
         model = AutoModelForCausalLM.from_pretrained(
             args.llm_model_path,
-            torch_dtype=torch.float16,
-
+            dtype=torch.float16,
             low_cpu_mem_usage=True,
             **kwargs
         )
+        
+        # Try to move model to MPS if available, but fall back to CPU if it fails
+        if torch.backends.mps.is_available():
+            print("Moving model to MPS...")
+            model = model.to("mps")
 
         if args.llm_frozen == 'True':
             print("Freezing LLAMA!")
@@ -135,8 +139,10 @@ class GraphLLM(torch.nn.Module):
         
         eos_tokens = self.tokenizer(EOS, add_special_tokens=False)
         eos_user_tokens = self.tokenizer(EOS_USER, add_special_tokens=False)
-        bos_embeds = self.word_embedding(self.tokenizer(BOS, add_special_tokens=False, return_tensors='pt').input_ids[0])
-        pad_embeds = self.word_embedding(torch.tensor(self.tokenizer.pad_token_id)).unsqueeze(0)
+        # Get model dtype to ensure consistency
+        model_dtype = next(self.model.parameters()).dtype
+        bos_embeds = self.word_embedding(self.tokenizer(BOS, add_special_tokens=False, return_tensors='pt').input_ids[0].to(self.model.device))
+        pad_embeds = self.word_embedding(torch.tensor(self.tokenizer.pad_token_id).to(self.model.device)).unsqueeze(0)
 
         # encode graphs
         graph_embeds_list = self.encode_graphs(samples)
@@ -153,6 +159,8 @@ class GraphLLM(torch.nn.Module):
             inputs_embeds = self.word_embedding(torch.tensor(input_ids).to(self.model.device))
             sample_graph_embeds = torch.cat([proj.unsqueeze(0) for proj in projected_graph_embeds_list[i]], dim=0)
             sample_graph_embeds = sample_graph_embeds.mean(dim=0, keepdim=True)
+            # Convert graph embeddings to match model dtype (float16)
+            sample_graph_embeds = sample_graph_embeds.to(dtype=model_dtype)
             inputs_embeds = torch.cat([bos_embeds, sample_graph_embeds, inputs_embeds], dim=0)
             # inputs_embeds = torch.cat([bos_embeds, graph_embeds[i].unsqueeze(0), inputs_embeds], dim=0)
 
@@ -172,7 +180,7 @@ class GraphLLM(torch.nn.Module):
         inputs_embeds = torch.stack(batch_inputs_embeds, dim=0).to(self.model.device)
         attention_mask = torch.tensor(batch_attention_mask).to(self.model.device)
         label_input_ids = torch.tensor(batch_label_input_ids).to(self.model.device)
-
+        print("device", self.model.device)
         with self.maybe_autocast():
             
             outputs = self.model(
@@ -191,8 +199,10 @@ class GraphLLM(torch.nn.Module):
         questions = self.tokenizer(samples["question"], add_special_tokens=False)
         # encode special tokens
         eos_user_tokens = self.tokenizer(EOS_USER, add_special_tokens=False)
-        bos_embeds = self.word_embedding(self.tokenizer(BOS, add_special_tokens=False, return_tensors='pt').input_ids[0])
-        pad_embeds = self.word_embedding(torch.tensor(self.tokenizer.pad_token_id)).unsqueeze(0)
+        # Get model dtype to ensure consistency
+        model_dtype = next(self.model.parameters()).dtype
+        bos_embeds = self.word_embedding(self.tokenizer(BOS, add_special_tokens=False, return_tensors='pt').input_ids[0].to(self.model.device))
+        pad_embeds = self.word_embedding(torch.tensor(self.tokenizer.pad_token_id).to(self.model.device)).unsqueeze(0)
 
         # encode graphs
         graph_embeds_list = self.encode_graphs(samples)
@@ -212,6 +222,8 @@ class GraphLLM(torch.nn.Module):
             inputs_embeds = self.word_embedding(torch.tensor(input_ids).to(self.model.device))
             sample_graph_embeds = torch.cat([proj.unsqueeze(0) for proj in projected_graph_embeds_list[i]], dim=0)
             sample_graph_embeds = sample_graph_embeds.mean(dim=0, keepdim=True)
+            # Convert graph embeddings to match model dtype (float16)
+            sample_graph_embeds = sample_graph_embeds.to(dtype=model_dtype)
             inputs_embeds = torch.cat([bos_embeds, sample_graph_embeds, inputs_embeds], dim=0)
             batch_inputs_embeds.append(inputs_embeds)
             batch_attention_mask.append([1] * inputs_embeds.shape[0])

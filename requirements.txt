@@ -1,0 +1,18 @@
+pandas
+# tqdm
+# numpy==1.23.4
+torch
+# torch-scatter - Install separately after torch:
+# First check your PyTorch version: python -c "import torch; print(torch.__version__)"
+# Then install: pip install torch-scatter -f https://data.pyg.org/whl/torch-{VERSION}+cpu.html
+# Example for PyTorch 2.8.0: pip install torch-scatter -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
+torch_geometric
+# cuda==11.8.89
+transformers==4.45.2
+networkx==2.8.7
+peft==0.12.0
+gensim
+pcst-fast
+wandb
+scikit-learn
+sentencepiece
