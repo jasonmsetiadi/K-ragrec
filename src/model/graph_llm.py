@@ -49,7 +49,7 @@ class GraphLLM(torch.nn.Module):
 
         model = AutoModelForCausalLM.from_pretrained(
             args.llm_model_path,
-            dtype=torch.float16,
+            torch_dtype=torch.float16,
             low_cpu_mem_usage=True,
             **kwargs
         )
@@ -110,7 +110,7 @@ class GraphLLM(torch.nn.Module):
     def maybe_autocast(self, dtype=torch.bfloat16):
         # if on cpu, don't use autocast
         # if on gpu, use autocast with dtype if provided, otherwise use torch.float16
-        enable_autocast = self.device != torch.device("cpu")
+        enable_autocast = self.device != torch.device("cpu") and torch.cuda.is_available()
 
         if enable_autocast:
             return torch.cuda.amp.autocast(dtype=dtype)
@@ -180,7 +180,7 @@ class GraphLLM(torch.nn.Module):
         inputs_embeds = torch.stack(batch_inputs_embeds, dim=0).to(self.model.device)
         attention_mask = torch.tensor(batch_attention_mask).to(self.model.device)
         label_input_ids = torch.tensor(batch_label_input_ids).to(self.model.device)
-        print("device", self.model.device)
+
         with self.maybe_autocast():
             
             outputs = self.model(

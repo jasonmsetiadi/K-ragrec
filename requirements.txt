@@ -9,8 +9,8 @@ torch
 torch_geometric
 # cuda==11.8.89
 transformers==4.45.2
-networkx==2.8.7
-peft==0.12.0
+networkx
+peft
 gensim
 pcst-fast
 wandb
